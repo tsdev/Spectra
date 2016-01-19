@@ -29,7 +29,7 @@ function [sout,fitdata]=fits(s1,func,pin,notfixed,varargin)
     p.addParamValue('dfdp','specdfdp_multi',@(x) ischar(x))
     p.addParamValue('confidence',0.05,@(x) isnumeric(x) & length(x)==1 & x>0 & x<1)
     p.addParamValue('inequc',{zeros(length(pin),0) zeros(0,1)},@iscell)
-    p.addParamValue('sep',cell(length(s1),1), @iscell)
+%     p.addParamValue('sep',cell(length(s1),1), @iscell)
     p.addParamValue('method','lsquare',@ischar)
     p.addParamValue('window',0,@(x) (isnumeric(x) && length(x)==2) || all(cellfun(@length,x)==2))
     p.addParamValue('parallel',0,@(x) x==0 | x == 1)
@@ -77,7 +77,7 @@ function [sout,fitdata]=fits(s1,func,pin,notfixed,varargin)
     if options.multifit
         warning('Just FYI, this is a multifit!')
         n = length(s1);
-        [s1, pin, notfixed] = multifit_ini(s1,pin,notfixed,options.sep);
+        [s1, pin, notfixed] = multifit_ini(s1,pin,notfixed);
         options.inequc = {zeros(length(pin),0) zeros(0,1)};
         if iscell(options.bounds)
             options.bounds = multifit_bounds(options.fixed,options.bounds);
@@ -90,7 +90,7 @@ function [sout,fitdata]=fits(s1,func,pin,notfixed,varargin)
     sout = spec1d;
     fitdata = struct;
     
-    if all([getpref('mtools','experimental'), options.parallel, ~options.multifit])
+    if all([sdext.getpref('experimental').val, options.parallel, ~options.multifit])
         all_data = cell(length(s1),1);
         [all_data{:}] = get(s1,'x','y','e');
         for i = 1:length(all_data)
@@ -202,13 +202,15 @@ function [sout,fitdata]=fits(s1,func,pin,notfixed,varargin)
                         pnames = [pnames(:); temp(:)];
                     end
                 else
-                    [~,~,pnames] = feval(func,x,p,1);
+                    if nargin(func)<3
+                        pnames = num2str((1:numel(p))','p%d');
+                    else
+                        [~,~,pnames] = feval(func,x,p,1);
+                    end
                 end
             else
-                pnames = cell(length(p),1);
-                for i=1:length(p)
-                    pnames{i} = ['p' num2str(i)];
-                end
+            pnames = num2str((1:numel(p))','p%d');
+
             end
             
             %----- set return
